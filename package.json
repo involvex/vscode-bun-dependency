@@ -1,0 +1,54 @@
+{
+	"name": "vscode-bun-dependency",
+	"displayName": "vscode-bun-dependency",
+	"version": "0.0.1",
+	"description": "Update dependencies/devDependencies for specific package.json with bun and execute scripts.",
+	"categories": [
+		"Other"
+	],
+	"author": "involvex",
+	"main": "./out/extension.js",
+	"scripts": {
+		"check": "bun run format && bun run lint:fix && bun run typecheck",
+		"clean": "bunx del-cli dist",
+		"compile": "tsc -p ./",
+		"format": "prettier . --write",
+		"lint": "eslint src",
+		"lint:fix": "eslint src --fix",
+		"package": "bunx @vscode/vsce package --no-dependencies -o ./dist/ --skip-license",
+		"pretest": "bun run compile && bun run lint",
+		"test": "vscode-test",
+		"typecheck": "tsc --noEmit",
+		"vscode:prepublish": "bun run clean && bun run check && bunx mkdirp dist && bun run compile",
+		"watch": "tsc -watch -p ./"
+	},
+	"contributes": {
+		"commands": [
+			{
+				"command": "vscode-bun-dependency.helloWorld",
+				"title": "Hello World"
+			}
+		]
+	},
+	"activationEvents": [],
+	"prettier": "@involvex/prettier-config",
+	"overrides": {
+		"diff": "^8.0.4",
+		"serialize-javascript": "^7.0.6"
+	},
+	"devDependencies": {
+		"@involvex/prettier-config": "^0.0.6",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "24.x",
+		"@types/vscode": "^1.136.0",
+		"@vscode/test-cli": "^0.0.15",
+		"@vscode/test-electron": "^3.0.0",
+		"eslint": "^10.5.0",
+		"prettier": "^3.9.6",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.61.1"
+	},
+	"engines": {
+		"vscode": "^1.136.0"
+	}
+}
