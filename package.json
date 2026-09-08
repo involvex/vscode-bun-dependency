@@ -148,11 +148,13 @@
 			"bun-explorer": [
 				{
 					"id": "bunDependencies",
-					"name": "Dependencies"
+					"name": "Dependencies",
+					"icon": "media/bun.svg"
 				},
 				{
 					"id": "bunScripts",
-					"name": "Bun Scripts"
+					"name": "Bun Scripts",
+					"icon": "media/bun.svg"
 				}
 			]
 		},
