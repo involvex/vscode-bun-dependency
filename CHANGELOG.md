@@ -7,3 +7,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 - Initial release
+
+### Fixed
+
+- The package search webview now loads its own script and stylesheet. Previously `localResourceRoots: []` blocked all local resources, so the Search Packages panel opened but search, install, and Add Package did nothing.
