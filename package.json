@@ -25,8 +25,8 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "vscode-bun-dependency.helloWorld",
-				"title": "Hello World"
+				"command": "vscode-bun-dependency.outdated",
+				"title": "Check for outdated packages"
 			}
 		]
 	},
