@@ -11,6 +11,7 @@
 		"url": "git+https://github.com/involvex/vscode-bun-dependency.git"
 	},
 	"author": "involvex",
+	"publisher": "involvex",
 	"main": "./out/extension.js",
 	"scripts": {
 		"check": "bun run format && bun run lint:fix && bun run typecheck",
