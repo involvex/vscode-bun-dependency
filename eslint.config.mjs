@@ -2,7 +2,10 @@ import typescriptEslint from 'typescript-eslint'
 
 export default [
 	{
-		files: ['**/*.ts'],
+		ignores: ['out/**', 'dist/**', 'node_modules/**', '.vscode-test/**'],
+	},
+	{
+		files: ['src/**/*.ts', 'media/**/*.js'],
 	},
 	{
 		plugins: {
@@ -27,7 +30,7 @@ export default [
 			curly: 'warn',
 			eqeqeq: 'warn',
 			'no-throw-literal': 'warn',
-			semi: 'warn',
+			semi: ['warn', 'never'],
 		},
 	},
 ]

@@ -1,40 +1,230 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from 'vscode'
+import {BunRunner} from './bun.ts'
+import {DependenciesProvider, type DepTreeItem} from './dependenciesProvider.ts'
+import {ScriptTreeItem, ScriptsProvider} from './scriptsProvider.ts'
+import {SearchPanel} from './searchPanel.ts'
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log(
-		'Congratulations, your extension "vscode-bun-dependency" is now active!',
-	);
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand(
-		'vscode-bun-dependency.outdated',
-		async () => {
-			// The code you place here will be executed every time your command is executed
-			// Display a message box to the user
-			vscode.window.showInformationMessage(
-				'Check for outdated packages from vscode-bun-dependency!',
-			);
-			await vscode.window
-				.createTerminal({
-					name: 'bun outdated',
-					shellPath: 'bun',
-					shellArgs: ['outdated'],
-				})
-				.show();
-			await vscode.window.activeTerminal?.sendText('bun outdated');
-		},
-	);
-
-	context.subscriptions.push(disposable);
+function getWorkspaceRoot(): string | undefined {
+	return vscode.workspace.workspaceFolders?.find(
+		folder => folder.uri.scheme === 'file',
+	)?.uri.fsPath
 }
 
-// This method is called when your extension is deactivated
+const PUBLISHER = 'vscode-bun-dependency'
+
+function runBunWithProgress<T>(
+	viewId: string,
+	title: string,
+	task: () => Thenable<T>,
+): Thenable<T> {
+	return vscode.window.withProgress({location: {viewId}, title}, async () =>
+		task(),
+	)
+}
+
+function showError(prefix: string, error: unknown): void {
+	const message = error instanceof Error ? error.message : String(error)
+	vscode.window.showErrorMessage(`Bun Dependencies: ${prefix} ${message}`)
+}
+
+export function activate(context: vscode.ExtensionContext) {
+	const workspaceRoot = getWorkspaceRoot()
+	if (!workspaceRoot) {
+		vscode.window.showWarningMessage(
+			'Bun Dependencies: open a workspace folder to use this extension.',
+		)
+		return
+	}
+
+	const runner = new BunRunner(workspaceRoot)
+	const dependencies = new DependenciesProvider(runner)
+	const scripts = new ScriptsProvider(runner)
+
+	const dependenciesView = vscode.window.createTreeView('bunDependencies', {
+		treeDataProvider: dependencies,
+	})
+	const scriptsView = vscode.window.createTreeView('bunScripts', {
+		treeDataProvider: scripts,
+		showCollapseAll: true,
+	})
+
+	const reloadAll = async (): Promise<void> => {
+		await Promise.all([dependencies.reload(), scripts.reload()])
+	}
+
+	const checkOutdated = async (notify: boolean): Promise<void> => {
+		try {
+			const outdated = await runBunWithProgress(
+				'bunDependencies',
+				'Checking for outdated packages',
+				() => runner.outdated(),
+			)
+			dependencies.setOutdated(outdated)
+			if (notify) {
+				if (outdated.length === 0) {
+					vscode.window.showInformationMessage(
+						'Bun: all dependencies are up to date.',
+					)
+				} else {
+					vscode.window.showInformationMessage(
+						`Bun: ${outdated.length} package(s) have updates available.`,
+					)
+				}
+			}
+		} catch (error) {
+			if (notify) {
+				showError('Failed to check for outdated packages.', error)
+			}
+		}
+	}
+
+	const runScript = async (
+		scriptOrItem: ScriptTreeItem | string | undefined,
+	): Promise<void> => {
+		let name: string | undefined
+		if (typeof scriptOrItem === 'string') {
+			name = scriptOrItem
+		} else if (scriptOrItem instanceof ScriptTreeItem) {
+			name = scriptOrItem.script
+		} else {
+			const info = await runner.readPackageJson()
+			const names = Object.keys(info.scripts)
+			if (names.length === 0) {
+				vscode.window.showInformationMessage(
+					'Bun: no scripts defined in package.json.',
+				)
+				return
+			}
+			name = await vscode.window.showQuickPick(names, {
+				placeHolder: 'Select a script to run with bun',
+			})
+			if (!name) {
+				return
+			}
+		}
+		const terminalName = `bun run ${name}`
+		const terminal =
+			vscode.window.terminals.find(
+				candidate => candidate.name === terminalName && !candidate.exitStatus,
+			) ?? vscode.window.createTerminal(terminalName)
+		terminal.show(true)
+		terminal.sendText(`bun run ${name}`, true)
+	}
+
+	const register = (
+		command: string,
+		handler: (...args: any[]) => unknown,
+	): void => {
+		context.subscriptions.push(
+			vscode.commands.registerCommand(
+				`${PUBLISHER}.${command}`,
+				async (...args: unknown[]) => {
+					try {
+						await handler(...args)
+					} catch (error) {
+						showError(`Command "${command}" failed.`, error)
+					}
+				},
+			),
+		)
+	}
+
+	register('refresh', () => reloadAll())
+
+	register('checkOutdated', () => checkOutdated(true))
+
+	register('updateAll', async () => {
+		await runBunWithProgress(
+			'bunDependencies',
+			'Updating all packages with bun',
+			() => runner.updateAll(),
+		)
+		await reloadAll()
+		void checkOutdated(false)
+		vscode.window.showInformationMessage('Bun: updated all packages.')
+	})
+
+	register('updatePackage', async (item: DepTreeItem) => {
+		const name = item?.entry?.name
+		if (!name) {
+			return
+		}
+		await runBunWithProgress('bunDependencies', `Updating ${name}`, () =>
+			runner.update(name),
+		)
+		await reloadAll()
+		void checkOutdated(false)
+		vscode.window.showInformationMessage(`Bun: updated ${name}.`)
+	})
+
+	register('updatePackageLatest', async (item: DepTreeItem) => {
+		const name = item?.entry?.name
+		if (!name) {
+			return
+		}
+		await runBunWithProgress(
+			'bunDependencies',
+			`Updating ${name} to latest`,
+			() => runner.updateLatest(name),
+		)
+		await reloadAll()
+		void checkOutdated(false)
+		vscode.window.showInformationMessage(
+			`Bun: updated ${name} to the latest version.`,
+		)
+	})
+
+	register('removePackage', async (item: DepTreeItem) => {
+		const name = item?.entry?.name
+		if (!name) {
+			return
+		}
+		const confirm = await vscode.window.showWarningMessage(
+			`Bun: remove ${name}?`,
+			{modal: true},
+			'Remove',
+		)
+		if (confirm !== 'Remove') {
+			return
+		}
+		await runBunWithProgress('bunDependencies', `Removing ${name}`, () =>
+			runner.remove(name),
+		)
+		await reloadAll()
+		vscode.window.showInformationMessage(`Bun: removed ${name}.`)
+	})
+
+	register('addPackage', () => openSearchPanel())
+
+	register('openSearch', () => openSearchPanel())
+
+	function openSearchPanel(): void {
+		SearchPanel.createOrShow(context, runner, () => {
+			void reloadAll()
+			void checkOutdated(false)
+		})
+	}
+
+	scripts.setRunScriptCommand(`${PUBLISHER}.runScript`)
+	register('runScript', (item: ScriptTreeItem | string | undefined) =>
+		runScript(item),
+	)
+
+	register('refreshScripts', () => scripts.reload())
+
+	// Keep both views in sync when package.json changes on disk.
+	context.subscriptions.push(
+		vscode.workspace.onDidSaveTextDocument(document => {
+			if (document.fileName.endsWith('package.json')) {
+				void reloadAll()
+			}
+		}),
+		dependenciesView,
+		scriptsView,
+	)
+
+	void reloadAll()
+	void checkOutdated(false)
+}
+
 export function deactivate() {}

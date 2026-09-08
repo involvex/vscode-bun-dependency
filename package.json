@@ -15,7 +15,7 @@
 		"format": "prettier . --write",
 		"lint": "eslint src",
 		"lint:fix": "eslint src --fix",
-		"package": "bunx @vscode/vsce package --no-dependencies -o ./dist/ --skip-license",
+		"package": "bunx @vscode/vsce package --no-dependencies -o ./dist/ --skip-license --allow-missing-repository",
 		"pretest": "bun run compile && bun run lint",
 		"test": "vscode-test",
 		"typecheck": "tsc --noEmit",
@@ -25,12 +25,150 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "vscode-bun-dependency.outdated",
-				"title": "Check for outdated packages"
+				"command": "vscode-bun-dependency.refresh",
+				"title": "Refresh Dependencies",
+				"category": "Bun",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "vscode-bun-dependency.checkOutdated",
+				"title": "Check for Outdated Packages",
+				"category": "Bun",
+				"icon": "$(sync)"
+			},
+			{
+				"command": "vscode-bun-dependency.updateAll",
+				"title": "Update All Packages",
+				"category": "Bun",
+				"icon": "$(cloud-download)"
+			},
+			{
+				"command": "vscode-bun-dependency.updatePackage",
+				"title": "Update Package",
+				"category": "Bun",
+				"icon": "$(arrow-up)"
+			},
+			{
+				"command": "vscode-bun-dependency.updatePackageLatest",
+				"title": "Update Package to Latest",
+				"category": "Bun"
+			},
+			{
+				"command": "vscode-bun-dependency.removePackage",
+				"title": "Remove Package",
+				"category": "Bun",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "vscode-bun-dependency.addPackage",
+				"title": "Add Package",
+				"category": "Bun",
+				"icon": "$(add)"
+			},
+			{
+				"command": "vscode-bun-dependency.openSearch",
+				"title": "Search Packages to Install",
+				"category": "Bun",
+				"icon": "$(search)"
+			},
+			{
+				"command": "vscode-bun-dependency.runScript",
+				"title": "Run Script",
+				"category": "Bun",
+				"icon": "$(play)"
+			},
+			{
+				"command": "vscode-bun-dependency.refreshScripts",
+				"title": "Refresh Scripts",
+				"category": "Bun",
+				"icon": "$(refresh)"
 			}
-		]
+		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "vscode-bun-dependency.refresh",
+					"when": "view == bunDependencies",
+					"group": "navigation@1"
+				},
+				{
+					"command": "vscode-bun-dependency.checkOutdated",
+					"when": "view == bunDependencies",
+					"group": "navigation@2"
+				},
+				{
+					"command": "vscode-bun-dependency.updateAll",
+					"when": "view == bunDependencies",
+					"group": "navigation@3"
+				},
+				{
+					"command": "vscode-bun-dependency.addPackage",
+					"when": "view == bunDependencies",
+					"group": "navigation@4"
+				},
+				{
+					"command": "vscode-bun-dependency.openSearch",
+					"when": "view == bunDependencies"
+				},
+				{
+					"command": "vscode-bun-dependency.refreshScripts",
+					"when": "view == bunScripts",
+					"group": "navigation@1"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "vscode-bun-dependency.updatePackage",
+					"when": "view == bunDependencies && viewItem == outdatedPackage",
+					"group": "inline@1"
+				},
+				{
+					"command": "vscode-bun-dependency.updatePackageLatest",
+					"when": "view == bunDependencies && viewItem == outdatedPackage",
+					"group": "1_update@1"
+				},
+				{
+					"command": "vscode-bun-dependency.updatePackage",
+					"when": "view == bunDependencies && viewItem == outdatedPackage",
+					"group": "1_update@2"
+				},
+				{
+					"command": "vscode-bun-dependency.removePackage",
+					"when": "view == bunDependencies && viewItem =~ /^outdatedPackage$|^package$/",
+					"group": "2_delete@1"
+				},
+				{
+					"command": "vscode-bun-dependency.runScript",
+					"when": "view == bunScripts && viewItem == bunScript",
+					"group": "inline@1"
+				}
+			]
+		},
+		"views": {
+			"bun-explorer": [
+				{
+					"id": "bunDependencies",
+					"name": "Dependencies"
+				},
+				{
+					"id": "bunScripts",
+					"name": "Bun Scripts"
+				}
+			]
+		},
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "bun-explorer",
+					"title": "Bun Dependencies",
+					"icon": "media/bun.svg"
+				}
+			]
+		}
 	},
-	"activationEvents": [],
+	"activationEvents": [
+		"onStartupFinished"
+	],
 	"prettier": "@involvex/prettier-config",
 	"overrides": {
 		"diff": "^8.0.4",
