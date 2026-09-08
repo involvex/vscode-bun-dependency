@@ -2,11 +2,12 @@ import * as vscode from 'vscode'
 import type {BunRunner} from './bun.ts'
 
 interface SearchMessage {
-	command: 'search' | 'install' | 'openExternal'
+	command: 'search' | 'install' | 'openExternal' | 'webviewError'
 	query?: string
 	name?: string
 	dev?: boolean
 	url?: string
+	message?: string
 }
 
 export class SearchPanel {
@@ -30,7 +31,13 @@ export class SearchPanel {
 			vscode.ViewColumn.Active,
 			{
 				enableScripts: true,
-				localResourceRoots: [],
+				// Scope resource access to the extension's media folder. Note:
+				// explicitly passing an empty array (instead of omitting this
+				// option) would block ALL local resources, including this
+				// webview's own script and stylesheet.
+				localResourceRoots: [
+					vscode.Uri.joinPath(context.extensionUri, 'media'),
+				],
 			},
 		)
 		SearchPanel.currentPanel = new SearchPanel(
@@ -103,6 +110,13 @@ export class SearchPanel {
 				if (message.url) {
 					await vscode.env.openExternal(vscode.Uri.parse(message.url))
 				}
+				break
+			}
+			case 'webviewError': {
+				vscode.window.showErrorMessage(
+					'Bun Dependencies (search webview): ' +
+						(message.message ?? 'Unknown error'),
+				)
 				break
 			}
 		}

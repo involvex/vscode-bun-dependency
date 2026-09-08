@@ -141,3 +141,10 @@ input.addEventListener('keydown', event => {
 	}
 })
 searchButton.addEventListener('click', search)
+
+// Surface unexpected runtime failures in the webview to the extension host so
+// they become visible instead of silently looking like "the button does
+// nothing".
+window.addEventListener('error', event => {
+	vscode.postMessage({command: 'webviewError', message: event.message})
+})

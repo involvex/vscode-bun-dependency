@@ -11,6 +11,7 @@ Instructions and guidelines for AI agents and human contributors working in this
 **Purpose:** Manage dependencies, devDependencies, and scripts in `package.json` using **Bun** directly from the VS Code Explorer. Provides tree views for dependencies, devDependencies, and Bun scripts, plus a webview-based package search.
 
 **Runtime requirements:**
+
 - [Bun](https://bun.sh) >= 1.3.0 (required)
 - Node.js is **not** used; all scripts and tooling run through `bun`
 - Windows, macOS, Linux supported
@@ -96,24 +97,24 @@ gh pr create --title "feat: describe your change" --body "Description"
 
 ## Technologies
 
-| Technology | Role | Notes |
-|------------|------|-------|
-| **TypeScript** | Primary language | Target: ES2022, module: Node16, strict mode enabled |
-| **VS Code Extension API** | Extension host integration | `vscode` package >= 1.136.0 |
-| **Bun** | Runtime, package manager, CLI | Used for `bun add/remove/update/outdated` |
-| **ESLint** | Linting | `typescript-eslint` parser, custom rules in `eslint.config.mjs` |
-| **Prettier** | Formatting | Config inherited from `@involvex/prettier-config` |
-| **Mocha / vscode-test** | Testing | Tests live in `src/test/extension.test.ts` |
+| Technology                | Role                          | Notes                                                           |
+| ------------------------- | ----------------------------- | --------------------------------------------------------------- |
+| **TypeScript**            | Primary language              | Target: ES2022, module: Node16, strict mode enabled             |
+| **VS Code Extension API** | Extension host integration    | `vscode` package >= 1.136.0                                     |
+| **Bun**                   | Runtime, package manager, CLI | Used for `bun add/remove/update/outdated`                       |
+| **ESLint**                | Linting                       | `typescript-eslint` parser, custom rules in `eslint.config.mjs` |
+| **Prettier**              | Formatting                    | Config inherited from `@involvex/prettier-config`               |
+| **Mocha / vscode-test**   | Testing                       | Tests live in `src/test/extension.test.ts`                      |
 
 ### Key Source Files
 
-| File | Responsibility |
-|------|----------------|
-| `src/extension.ts` | Extension activation, command registration, tree view setup |
-| `src/bun.ts` | `BunRunner` class wrapping `bun` CLI, registry search, `parseOutdated` |
-| `src/dependenciesProvider.ts` | `TreeDataProvider` for Dependencies / Dev Dependencies |
-| `src/scriptsProvider.ts` | `TreeDataProvider` for Bun scripts |
-| `src/searchPanel.ts` | Webview panel for searching and installing npm packages |
+| File                          | Responsibility                                                         |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `src/extension.ts`            | Extension activation, command registration, tree view setup            |
+| `src/bun.ts`                  | `BunRunner` class wrapping `bun` CLI, registry search, `parseOutdated` |
+| `src/dependenciesProvider.ts` | `TreeDataProvider` for Dependencies / Dev Dependencies                 |
+| `src/scriptsProvider.ts`      | `TreeDataProvider` for Bun scripts                                     |
+| `src/searchPanel.ts`          | Webview panel for searching and installing npm packages                |
 
 ---
 
