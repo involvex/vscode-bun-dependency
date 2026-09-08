@@ -6,6 +6,10 @@
 	"categories": [
 		"Other"
 	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/involvex/vscode-bun-dependency.git"
+	},
 	"author": "involvex",
 	"main": "./out/extension.js",
 	"scripts": {
@@ -15,7 +19,7 @@
 		"format": "prettier . --write",
 		"lint": "eslint src",
 		"lint:fix": "eslint src --fix",
-		"package": "bunx @vscode/vsce package --no-dependencies -o ./dist/ --skip-license --allow-missing-repository",
+		"package": "bunx @vscode/vsce package --no-dependencies -o ./dist/ --skip-license",
 		"pretest": "bun run compile && bun run lint",
 		"test": "vscode-test",
 		"typecheck": "tsc --noEmit",
