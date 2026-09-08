@@ -29,14 +29,21 @@ function showError(prefix: string, error: unknown): void {
 
 export function activate(context: vscode.ExtensionContext) {
 	const workspaceRoot = getWorkspaceRoot()
-	if (!workspaceRoot) {
+
+	// Register every command up front, even without a workspace folder, so
+	// VS Code never reports "command 'vscode-bun-dependency.*' not found".
+	const runner = new BunRunner(workspaceRoot ?? '')
+
+	// Throws (after warning) for user-initiated commands that need a workspace.
+	const ensureWorkspace = (): string => {
+		if (workspaceRoot) {
+			return workspaceRoot
+		}
 		vscode.window.showWarningMessage(
 			'Bun Dependencies: open a workspace folder to use this extension.',
 		)
-		return
+		throw new Error('No workspace folder open.')
 	}
-
-	const runner = new BunRunner(workspaceRoot)
 	const dependencies = new DependenciesProvider(runner)
 	const scripts = new ScriptsProvider(runner)
 
@@ -48,11 +55,18 @@ export function activate(context: vscode.ExtensionContext) {
 		showCollapseAll: true,
 	})
 
+	// Silent no-op when no workspace is open (used by startup auto-refresh).
 	const reloadAll = async (): Promise<void> => {
+		if (!workspaceRoot) {
+			return
+		}
 		await Promise.all([dependencies.reload(), scripts.reload()])
 	}
 
 	const checkOutdated = async (notify: boolean): Promise<void> => {
+		if (!workspaceRoot) {
+			return
+		}
 		try {
 			const outdated = await runBunWithProgress(
 				'bunDependencies',
@@ -81,6 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const runScript = async (
 		scriptOrItem: ScriptTreeItem | string | undefined,
 	): Promise<void> => {
+		ensureWorkspace()
 		let name: string | undefined
 		if (typeof scriptOrItem === 'string') {
 			name = scriptOrItem
@@ -134,6 +149,7 @@ export function activate(context: vscode.ExtensionContext) {
 	register('checkOutdated', () => checkOutdated(true))
 
 	register('updateAll', async () => {
+		ensureWorkspace()
 		await runBunWithProgress(
 			'bunDependencies',
 			'Updating all packages with bun',
@@ -145,6 +161,7 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 
 	register('updatePackage', async (item: DepTreeItem) => {
+		ensureWorkspace()
 		const name = item?.entry?.name
 		if (!name) {
 			return
@@ -158,6 +175,7 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 
 	register('updatePackageLatest', async (item: DepTreeItem) => {
+		ensureWorkspace()
 		const name = item?.entry?.name
 		if (!name) {
 			return
@@ -175,6 +193,7 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 
 	register('removePackage', async (item: DepTreeItem) => {
+		ensureWorkspace()
 		const name = item?.entry?.name
 		if (!name) {
 			return
@@ -199,6 +218,7 @@ export function activate(context: vscode.ExtensionContext) {
 	register('openSearch', () => openSearchPanel())
 
 	function openSearchPanel(): void {
+		ensureWorkspace()
 		SearchPanel.createOrShow(context, runner, () => {
 			void reloadAll()
 			void checkOutdated(false)
@@ -210,7 +230,10 @@ export function activate(context: vscode.ExtensionContext) {
 		runScript(item),
 	)
 
-	register('refreshScripts', () => scripts.reload())
+	register('refreshScripts', () => {
+		ensureWorkspace()
+		return scripts.reload()
+	})
 
 	// Keep both views in sync when package.json changes on disk.
 	context.subscriptions.push(
