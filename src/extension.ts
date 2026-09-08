@@ -16,19 +16,20 @@ export function activate(context: vscode.ExtensionContext) {
 	// The commandId parameter must match the command field in package.json
 	const disposable = vscode.commands.registerCommand(
 		'vscode-bun-dependency.outdated',
-		() => {
+		async () => {
 			// The code you place here will be executed every time your command is executed
 			// Display a message box to the user
 			vscode.window.showInformationMessage(
 				'Check for outdated packages from vscode-bun-dependency!',
 			);
-			vscode.window
+			await vscode.window
 				.createTerminal({
 					name: 'bun outdated',
 					shellPath: 'bun',
 					shellArgs: ['outdated'],
 				})
 				.show();
+			await vscode.window.activeTerminal?.sendText('bun outdated');
 		},
 	);
 
