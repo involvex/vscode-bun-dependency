@@ -129,7 +129,9 @@ export class SearchPanel {
 	private dispose(): void {
 		SearchPanel.currentPanel = undefined
 		this.panel.dispose()
-		this.disposables.forEach(disposable => disposable.dispose())
+		this.disposables.forEach(disposable => {
+			disposable.dispose()
+		})
 		this.disposables = []
 	}
 

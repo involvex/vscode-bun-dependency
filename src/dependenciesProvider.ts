@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import type {BunRunner, OutdatedPackage} from './bun.ts'
+import {PackageSelectorItem} from './packageJsonProvider.ts'
 
 export interface PackageEntry {
 	name: string
@@ -35,7 +36,10 @@ export class DependenciesProvider implements vscode.TreeDataProvider<DepTreeItem
 	private packages: PackageEntry[] = []
 	private packageName = ''
 
-	constructor(private readonly runner: BunRunner) {}
+	constructor(
+		private readonly runner: BunRunner,
+		private readonly activePackageLabel: () => string,
+	) {}
 
 	refresh(): void {
 		this.emitter.fire()
@@ -71,18 +75,27 @@ export class DependenciesProvider implements vscode.TreeDataProvider<DepTreeItem
 
 	async getChildren(element?: DepTreeItem): Promise<DepTreeItem[]> {
 		if (!element) {
+			const selector = new PackageSelectorItem(
+				'package.json',
+				this.activePackageLabel(),
+			)
+			selector.command = {
+				command: 'vscode-bun-dependency.selectPackage',
+				title: 'Select package.json',
+				arguments: [],
+			}
 			const hasDeps = this.packages.some(pkg => !pkg.dev)
 			const hasDevDeps = this.packages.some(pkg => pkg.dev)
-			const items: DepTreeItem[] = []
+			const items: DepTreeItem[] = [selector]
 			if (hasDeps) {
 				items.push(new DepTreeItem('Dependencies', 'dependencies'))
 			}
 			if (hasDevDeps) {
 				items.push(new DepTreeItem('Dev Dependencies', 'devDependencies'))
 			}
-			if (items.length === 0) {
+			if (items.length === 1) {
 				const empty = new DepTreeItem('No dependencies found in package.json')
-				return [empty]
+				return [selector, empty]
 			}
 			return items
 		}

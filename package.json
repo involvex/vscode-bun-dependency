@@ -87,6 +87,12 @@
 				"title": "Refresh Scripts",
 				"category": "Bun",
 				"icon": "$(refresh)"
+			},
+			{
+				"command": "vscode-bun-dependency.selectPackage",
+				"title": "Select package.json",
+				"category": "Bun",
+				"icon": "$(file)"
 			}
 		],
 		"menus": {
@@ -116,9 +122,19 @@
 					"when": "view == bunDependencies"
 				},
 				{
+					"command": "vscode-bun-dependency.selectPackage",
+					"when": "view == bunDependencies",
+					"group": "navigation@5"
+				},
+				{
 					"command": "vscode-bun-dependency.refreshScripts",
 					"when": "view == bunScripts",
 					"group": "navigation@1"
+				},
+				{
+					"command": "vscode-bun-dependency.selectPackage",
+					"when": "view == bunScripts",
+					"group": "navigation@2"
 				}
 			],
 			"view/item/context": [

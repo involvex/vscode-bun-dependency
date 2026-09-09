@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import {BunRunner} from './bun.ts'
 import {DependenciesProvider, type DepTreeItem} from './dependenciesProvider.ts'
+import {PackageJsonProvider} from './packageJsonProvider.ts'
 import {ScriptTreeItem, ScriptsProvider} from './scriptsProvider.ts'
 import {SearchPanel} from './searchPanel.ts'
 
@@ -34,6 +35,27 @@ export function activate(context: vscode.ExtensionContext) {
 	// VS Code never reports "command 'vscode-bun-dependency.*' not found".
 	const runner = new BunRunner(workspaceRoot ?? '')
 
+	const packageProvider = new PackageJsonProvider(workspaceRoot ?? '')
+
+	const activePackageLabel = (): string => {
+		const uri = packageProvider.getActiveUri()
+		if (!uri) {
+			return ''
+		}
+		return vscode.workspace.asRelativePath(uri)
+	}
+
+	const selectPackage = async (): Promise<void> => {
+		ensureWorkspace()
+		await packageProvider.select()
+		const path = packageProvider.getActivePath()
+		if (path) {
+			runner.setPackageJsonPath(path)
+		}
+		await reloadAll()
+		void checkOutdated(false)
+	}
+
 	// Throws (after warning) for user-initiated commands that need a workspace.
 	const ensureWorkspace = (): string => {
 		if (workspaceRoot) {
@@ -44,8 +66,8 @@ export function activate(context: vscode.ExtensionContext) {
 		)
 		throw new Error('No workspace folder open.')
 	}
-	const dependencies = new DependenciesProvider(runner)
-	const scripts = new ScriptsProvider(runner)
+	const dependencies = new DependenciesProvider(runner, activePackageLabel)
+	const scripts = new ScriptsProvider(runner, activePackageLabel)
 
 	const dependenciesView = vscode.window.createTreeView('bunDependencies', {
 		treeDataProvider: dependencies,
@@ -230,13 +252,20 @@ export function activate(context: vscode.ExtensionContext) {
 		runScript(item),
 	)
 
+	register('selectPackage', () => selectPackage())
+
 	register('refreshScripts', () => {
 		ensureWorkspace()
 		return scripts.reload()
 	})
 
-	// Keep both views in sync when package.json changes on disk.
+	// Refresh both views when the user changes the active package.json.
 	context.subscriptions.push(
+		packageProvider.onDidChangeActivePackage(() => {
+			runner.setPackageJsonPath(packageProvider.getActivePath() ?? '')
+			void reloadAll()
+			void checkOutdated(false)
+		}),
 		vscode.workspace.onDidSaveTextDocument(document => {
 			if (document.fileName.endsWith('package.json')) {
 				void reloadAll()
@@ -245,6 +274,14 @@ export function activate(context: vscode.ExtensionContext) {
 		dependenciesView,
 		scriptsView,
 	)
+
+	// Initialize the active package.json selection for this session.
+	void packageProvider.initialize().then(() => {
+		const path = packageProvider.getActivePath()
+		if (path) {
+			runner.setPackageJsonPath(path)
+		}
+	})
 
 	void reloadAll()
 	void checkOutdated(false)

@@ -1,6 +1,6 @@
 import {execFile} from 'child_process'
 import {readFile} from 'fs/promises'
-import {join} from 'path'
+import {dirname, join} from 'path'
 import {promisify} from 'util'
 
 const execFileAsync = promisify(execFile)
@@ -37,12 +37,24 @@ const EMPTY_INFO: PackageJsonInfo = {
 }
 
 export class BunRunner {
-	constructor(readonly workspaceRoot: string) {}
+	private packageJsonPath: string
+
+	constructor(
+		readonly workspaceRoot: string,
+		packageJsonPath?: string,
+	) {
+		this.packageJsonPath =
+			packageJsonPath ?? join(workspaceRoot, 'package.json')
+	}
+
+	setPackageJsonPath(path: string): void {
+		this.packageJsonPath = path
+	}
 
 	async exec(args: string[]): Promise<string> {
 		try {
 			const {stdout} = await execFileAsync('bun', args, {
-				cwd: this.workspaceRoot,
+				cwd: dirname(this.packageJsonPath),
 				maxBuffer: 16 * 1024 * 1024,
 				windowsHide: true,
 			})
@@ -60,10 +72,7 @@ export class BunRunner {
 
 	async readPackageJson(): Promise<PackageJsonInfo> {
 		try {
-			const raw = await readFile(
-				join(this.workspaceRoot, 'package.json'),
-				'utf8',
-			)
+			const raw = await readFile(this.packageJsonPath, 'utf8')
 			const parsed = JSON.parse(raw) as Partial<PackageJsonInfo>
 			return {
 				name: parsed.name ?? '',

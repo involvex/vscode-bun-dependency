@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import type {BunRunner} from './bun.ts'
+import {PackageSelectorItem} from './packageJsonProvider.ts'
 
 export class RootTreeItem extends vscode.TreeItem {
 	constructor() {
@@ -40,7 +41,10 @@ export class ScriptsProvider implements vscode.TreeDataProvider<ScriptsTreeItem>
 	private scripts: string[] = []
 	private runScriptCommand = 'vscode-bun-dependency.runScript'
 
-	constructor(private readonly runner: BunRunner) {}
+	constructor(
+		private readonly runner: BunRunner,
+		private readonly activePackageLabel: () => string,
+	) {}
 
 	refresh(): void {
 		this.emitter.fire()
@@ -62,7 +66,16 @@ export class ScriptsProvider implements vscode.TreeDataProvider<ScriptsTreeItem>
 
 	async getChildren(element?: ScriptsTreeItem): Promise<ScriptsTreeItem[]> {
 		if (!element) {
-			return [new RootTreeItem()]
+			const selector = new PackageSelectorItem(
+				'package.json',
+				this.activePackageLabel(),
+			)
+			selector.command = {
+				command: 'vscode-bun-dependency.selectPackage',
+				title: 'Select package.json',
+				arguments: [],
+			}
+			return [selector]
 		}
 
 		if (element instanceof RootTreeItem) {
