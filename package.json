@@ -15,7 +15,7 @@
 	"main": "./out/extension.js",
 	"scripts": {
 		"check": "bun run format && bun run lint:fix && bun run typecheck",
-		"clean": "bunx del-cli dist",
+		"clean": "del-cli dist",
 		"compile": "tsc -p ./",
 		"format": "prettier . --write",
 		"lint": "eslint src",
@@ -198,10 +198,11 @@
 		"serialize-javascript": "^7.0.6"
 	},
 	"devDependencies": {
+		"@involvex/del-cli": "^7.0.1",
 		"@involvex/prettier-config": "^0.0.6",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "24.x",
-		"@types/vscode": "^1.136.0",
+		"@types/vscode": "^1.140.0",
 		"@vscode/test-cli": "^0.0.15",
 		"@vscode/test-electron": "^3.0.0",
 		"eslint": "^10.5.0",
@@ -210,6 +211,6 @@
 		"typescript-eslint": "^8.61.1"
 	},
 	"engines": {
-		"vscode": "^1.136.0"
+		"vscode": "^1.143.1"
 	}
 }
